@@ -20,3 +20,6 @@ Update 09-Jan-2017
    I made several tests in controlled environments and I can now ensure that current implementation returns correct values
    for both positive and negative temperatures.
 
+Update 14-Mar-2019
+
+1) PCF8523 support included from radikalbytes library

@@ -7,23 +7,98 @@
 #include <Arduino.h>
 class TimeSpan;
 
+//Begin PCF8523 definitions
 
-#define PCF8523_ADDRESS              0x68
-#define PCF8523_CLKOUTCONTROL        0x0F
-#define PCF8523_CONTROL_3            0x02
+#define PCF8523_ADDRESS              	0x68
+#define PCF8523_CLKOUTCONTROL        	0x0F
+#define PCF8523_CONTROL_1       	0x00
+#define PCF8523_CONTROL_2		0x01
+#define PCF8523_CONTROL_3            	0x02
 
-#define DS1307_ADDRESS               0x68
-#define DS1307_CONTROL               0x07
-#define DS1307_NVRAM                 0x08
+#define PCF8523_SECONDS				0x03
+#define PCF8523_MINUTES				0x04
+#define PCF8523_HOURS				0x05
+#define PCF8523_DAYS				0x06
+#define PCF8523_WEEKDAYS			0x07
+#define PCF8523_MONTHS				0x08
+#define PCF8523_YEARS				0x09
+#define PCF8523_MINUTE_ALARM		0x0A
+#define PCF8523_HOUR_ALARM			0x0B
+#define PCF8523_DAY_ALARM			0x0C
+#define PCF8523_WEEKDAY_ALARM		0x0D
+#define PCF8523_OFFSET				0x0E
+#define PCF8523_TMR_CLKOUT_CTRL		0x0F
+#define PCF8523_TMR_A_FREQ_CTRL		0x10
+#define PCF8523_TMR_A_REG			0x11
+#define PCF8523_TMR_B_FREQ_CTRL		0x12
+#define PCF8523_TMR_B_REG			0x13
 
-#define DS3231_ADDRESS               0x68
-#define DS3231_CONTROL               0x0E
-#define DS3231_STATUSREG             0x0F
-#define DS3231_TEMP                  0x11
+#define PCF8523_CONTROL_1_CAP_SEL_BIT	7
+#define PCF8523_CONTROL_1_T_BIT			6
+#define PCF8523_CONTROL_1_STOP_BIT		5
+#define PCF8523_CONTROL_1_SR_BIT		4
+#define PCF8523_CONTROL_1_1224_BIT		3
+#define PCF8523_CONTROL_1_SIE_BIT		2
+#define PCF8523_CONTROL_1_AIE_BIT		1
+#define PCF8523_CONTROL_1CIE_BIT		0
 
-#define SECONDS_PER_DAY              86400L
+#define PCF8523_CONTROL_2_WTAF_BIT		7
+#define PCF8523_CONTROL_2_CTAF_BIT		6
+#define PCF8523_CONTROL_2_CTBF_BIT		5
+#define PCF8523_CONTROL_2_SF_BIT		4
+#define PCF8523_CONTROL_2_AF_BIT 		3
+#define PCF8523_CONTROL_2_WTAIE_BIT		2
+#define PCF8523_CONTROL_2_CTAIE_BIT		1
+#define PCF8523_CONTROL_2_CTBIE_BIT		0
 
-#define SECONDS_FROM_1970_TO_2000    946684800
+#define PCF8523_SECONDS_OS_BIT			7
+#define PCF8523_SECONDS_10_BIT       	6
+#define PCF8523_SECONDS_10_LENGTH   	3
+#define PCF8523_SECONDS_1_BIT        	3
+#define PCF8523_SECONDS_1_LENGTH     	4
+
+#define PCF8523_MINUTES_10_BIT       	6
+#define PCF8523_MINUTES_10_LENGTH    	3
+#define PCF8523_MINUTES_1_BIT        	3
+#define PCF8523_MINUTES_1_LENGTH     	4
+
+#define PCF8523_HOURS_MODE_BIT  	    3 // 0 = 24-hour mode, 1 = 12-hour mode
+#define PCF8523_HOURS_AMPM_BIT      	5 // 2nd HOURS_10 bit if in 24-hour mode
+#define PCF8523_HOURS_10_BIT        	4
+#define PCF8523_HOURS_1_BIT          	3
+#define PCF8523_HOURS_1_LENGTH       	4
+
+#define PCF8523_WEEKDAYS_BIT 	        2
+#define PCF8523_WEEKDAYS_LENGTH         3
+
+#define PCF8523_DAYS_10_BIT          5
+#define PCF8523_DAYS_10_LENGTH       2
+#define PCF8523_DAYS_1_BIT           3
+#define PCF8523_DAYS_1_LENGTH        4
+
+#define PCF8523_MONTH_10_BIT         4
+#define PCF8523_MONTH_1_BIT          3
+#define PCF8523_MONTH_1_LENGTH       4
+
+#define PCF8523_YEAR_10H_BIT         7
+#define PCF8523_YEAR_10H_LENGTH      4
+#define PCF8523_YEAR_1H_BIT          3
+#define PCF8523_YEAR_1H_LENGTH       4
+
+//End PCF8523 defines
+
+#define DS1307_ADDRESS               	0x68
+#define DS1307_CONTROL               	0x07
+#define DS1307_NVRAM                 	0x08
+
+#define DS3231_ADDRESS               	0x68
+#define DS3231_CONTROL               	0x0E
+#define DS3231_STATUSREG             	0x0F
+#define DS3231_TEMP                  	0x11
+
+#define SECONDS_PER_DAY              	86400L
+
+#define SECONDS_FROM_1970_TO_2000    	946684800
 
 //Control register bits
 #define A1IE 0
@@ -49,6 +124,8 @@ class TimeSpan;
 
 //Other
 #define DYDT 6                     //Day/Date flag bit in alarm Day/Date registers
+
+const uint8_t RTC_CLKOUT_DISABLED = ((1<<3) | (1<<4) | (1<<5));
 
 // Simple general-purpose date/time class (no TZ / DST / leap second handling!)
 class DateTime {
@@ -99,7 +176,26 @@ protected:
     int32_t _seconds;
 };
 
-// RTC based on the DS1307 chip connected via I2C and the Wire library
+class PCF8523{
+
+	public:
+    static uint8_t begin(void);
+    static void adjust(const DateTime& dt);
+    uint8_t isrunning(void);
+    static DateTime now();
+    uint8_t read_reg(uint8_t address);
+    void read_reg(uint8_t* buf, uint8_t size, uint8_t address);
+    void write_reg(uint8_t address, uint8_t data);
+    void write_reg(uint8_t address, uint8_t* buf, uint8_t size);
+    void set_alarm(uint8_t day_alarm, uint8_t hour_alarm,uint8_t minute_alarm ) ;
+    void set_alarm(uint8_t hour_alarm,uint8_t minute_alarm );
+    void get_alarm(uint8_t* buf);
+    void reset();
+    uint8_t clear_rtc_interrupt_flags(); 
+    void stop_32768_clkout();
+    void start_counter_1(uint8_t value);
+};
+
 enum Ds1307SqwPinMode { OFF = 0x00, ON = 0x80, SquareWave1HZ = 0x10, SquareWave4kHz = 0x11, SquareWave8kHz = 0x12, SquareWave32kHz = 0x13 };
 
 class RTC_DS1307 {
