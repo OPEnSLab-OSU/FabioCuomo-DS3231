@@ -237,7 +237,9 @@ static uint8_t bin2bcd (uint8_t val) { return val + 6 * (val / 10); }
 // PCF8523 implementation
 
 uint8_t PCF8523::begin(void) {
-  return 1;
+  // return 1;
+  Wire.begin();
+  return true;
 }
 
 // Example: bool a = PCF8523.isrunning();
@@ -252,6 +254,18 @@ uint8_t PCF8523::isrunning(void) {
   ss = ss & 32;
   return !(ss>>5);
 }
+
+
+boolean PCF8523::initialized(void) {
+  Wire.beginTransmission(PCF8523_ADDRESS);
+  Wire._I2C_WRITE((byte)PCF8523_CONTROL_3);
+  Wire.endTransmission();
+
+  Wire.requestFrom(PCF8523_ADDRESS, 1);
+  uint8_t ss = Wire._I2C_READ();
+  return ((ss & 0xE0) != 0xE0);
+}
+
 
 // Example: PCF8523.adjust (DateTime(2014, 8, 14, 1, 49, 0))
 // Sets RTC time to 2014/14/8 1:49 a.m.

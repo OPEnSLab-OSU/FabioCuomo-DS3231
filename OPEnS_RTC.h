@@ -187,6 +187,7 @@ class PCF8523{
 	public:
     static uint8_t begin(void);
     static void adjust(const DateTime& dt);
+    boolean initialized(void);
     uint8_t isrunning(void);
     static DateTime now();
     uint8_t read_reg(uint8_t address);
