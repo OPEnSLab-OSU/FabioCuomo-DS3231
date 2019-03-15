@@ -632,6 +632,10 @@ bool RTC_DS3231::lostPower(void) {
   return (read_i2c_register(DS3231_ADDRESS, DS3231_STATUSREG) >> 7);
 }
 
+bool RTC_DS3231::initialized(void) {
+  return (read_i2c_register(DS3231_ADDRESS, DS3231_STATUSREG) >> 7);
+}
+
 void RTC_DS3231::adjust(const DateTime& dt) {
   Wire.beginTransmission(DS3231_ADDRESS);
   Wire._I2C_WRITE((byte)0); // start at location 0
