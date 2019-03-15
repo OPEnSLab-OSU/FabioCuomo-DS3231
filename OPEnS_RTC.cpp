@@ -2,7 +2,7 @@
 // Released to the public domain! Enjoy!
 
 #include <Wire.h>
-#include "RTClibExtended.h"
+#include "OPEnS_RTC.h"
 #ifdef __AVR__
  #include <avr/pgmspace.h>
  

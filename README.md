@@ -1,4 +1,8 @@
-# FabioCuomo-DS3231
+# OPEnS_RTC-DS3231-PCF8523
+A fork of https://github.com/FabioCuomo/FabioCuomo-DS3231 with added support for PCF8523 interrupts by incorporating [radikalbytes](https://github.com/radikalbytes) [PCF8523 library](https://github.com/radikalbytes/PCF8523).
+
+
+
 A modified arduino library for DS3231 RTC
 
 This is a fork of the Adafruit library https://github.com/adafruit/RTClib, which I extended for DS3231 only by integrating some additional commands found in Jack Christensen's library https://github.com/JChristensen/DS3232RTC.
