@@ -7,6 +7,12 @@
 #include <Arduino.h>
 class TimeSpan;
 
+// NOTE: Must include the following line to use 
+// with M0 (was not in original RTClibExtended.h):
+#define _BV(bit) (1 << (bit))
+
+
+
 //Begin PCF8523 definitions
 
 #define PCF8523_ADDRESS              	0x68
