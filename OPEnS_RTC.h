@@ -11,6 +11,8 @@ class TimeSpan;
 // with M0 (was not in original RTClibExtended.h):
 #define _BV(bit) (1 << (bit))
 
+// #define EI_NOTEXTERNAL
+// #include <EnableInterrupt.h>
 
 
 //Begin PCF8523 definitions
@@ -181,6 +183,10 @@ protected:
 	int32_t _seconds;
 };
 
+
+enum Pcf8523SqwPinMode { PCF8523_OFF = 7, PCF8523_SquareWave1HZ = 6, PCF8523_SquareWave32HZ = 5, PCF8523_SquareWave1kHz = 4, PCF8523_SquareWave4kHz = 3, PCF8523_SquareWave8kHz = 2, PCF8523_SquareWave16kHz = 1, PCF8523_SquareWave32kHz = 0 };
+
+
 class PCF8523{
 
 	public:
@@ -200,6 +206,14 @@ class PCF8523{
 	uint8_t clear_rtc_interrupt_flags(); 
 	void stop_32768_clkout();
 	void start_counter_1(uint8_t value);
+
+	//
+	void set_alarm(uint8_t minute_alarm );
+	void enable_alarm(bool enable);
+	void ack_alarm(void);
+	Pcf8523SqwPinMode readSqwPinMode();
+	void writeSqwPinMode(Pcf8523SqwPinMode mode);
+
 };
 
 enum Ds1307SqwPinMode { OFF = 0x00, ON = 0x80, SquareWave1HZ = 0x10, SquareWave4kHz = 0x11, SquareWave8kHz = 0x12, SquareWave32kHz = 0x13 };
@@ -259,18 +273,18 @@ public:
 };
 
 // RTC based on the PCF8523 chip connected via I2C and the Wire library
-enum Pcf8523SqwPinMode { PCF8523_OFF = 7, PCF8523_SquareWave1HZ = 6, PCF8523_SquareWave32HZ = 5, PCF8523_SquareWave1kHz = 4, PCF8523_SquareWave4kHz = 3, PCF8523_SquareWave8kHz = 2, PCF8523_SquareWave16kHz = 1, PCF8523_SquareWave32kHz = 0 };
+// enum Pcf8523SqwPinMode { PCF8523_OFF = 7, PCF8523_SquareWave1HZ = 6, PCF8523_SquareWave32HZ = 5, PCF8523_SquareWave1kHz = 4, PCF8523_SquareWave4kHz = 3, PCF8523_SquareWave8kHz = 2, PCF8523_SquareWave16kHz = 1, PCF8523_SquareWave32kHz = 0 };
 
-class RTC_PCF8523 {
-public:
-	boolean begin(void);
-	void adjust(const DateTime& dt);
-	boolean initialized(void);
-	static DateTime now();
+// class RTC_PCF8523 {
+// public:
+// 	boolean begin(void);
+// 	void adjust(const DateTime& dt);
+// 	boolean initialized(void);
+// 	static DateTime now();
 
-	Pcf8523SqwPinMode readSqwPinMode();
-	void writeSqwPinMode(Pcf8523SqwPinMode mode);
-};
+// 	Pcf8523SqwPinMode readSqwPinMode();
+// 	void writeSqwPinMode(Pcf8523SqwPinMode mode);
+// };
 
 // RTC using the internal millis() clock, has to be initialized before use
 // NOTE: this clock won't be correct once the millis() timer rolls over (>49d?)
