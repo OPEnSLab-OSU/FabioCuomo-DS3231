@@ -501,6 +501,98 @@ void PCF8523::stop_32768_clkout() {
 	write_reg(PCF8523_TMR_CLKOUT_CTRL , tmp);
 }
 
+void PCF8523::setTimer1(eTIMER_TIMEBASE timebase, uint8_t value)
+{
+	uint8_t tmp;
+
+	// Set the timebase
+	write_reg(PCF8523_TMR_A_FREQ_CTRL , timebase);
+
+	// Set the value
+	write_reg(PCF8523_TMR_A_REG , value);
+
+	// Clear any Timer A flags
+    tmp = read_reg(PCF8523_CONTROL_2);
+	
+	tmp &= ~_BV(PCF8523_CONTROL_2_CTAF_BIT);	// Clear the Timer A flag
+	tmp |= _BV(PCF8523_CONTROL_2_CTAIE_BIT);	// Enable Timer A interrupt
+
+	write_reg(PCF8523_CONTROL_2 , tmp);
+
+	// Set Timer A as Countdown and Enable
+    tmp = read_reg(PCF8523_TMR_CLKOUT_CTRL);
+
+	tmp |= _BV(PCF8523_TMR_CLKOUT_CTRL_TAM_BIT);	// /INT line is pulsed
+	tmp |= 0x02;									// Set as a Countdown Timer	and Enable	
+
+	write_reg(PCF8523_TMR_CLKOUT_CTRL , tmp);
+
+}
+void PCF8523::ackTimer1(void)
+{
+	uint8_t tmp;
+
+	// Clear any Timer A flags
+    tmp = read_reg(PCF8523_CONTROL_2);
+	
+	tmp &= ~_BV(PCF8523_CONTROL_2_CTAF_BIT);	// Clear the Timer A flag
+
+	write_reg(PCF8523_CONTROL_2 , tmp);
+
+	return;
+}
+uint8_t PCF8523::getTimer1(void)
+{
+	return read_reg(PCF8523_TMR_A_REG);
+}
+void PCF8523::setTimer2(eTIMER_TIMEBASE timebase,uint8_t value)
+{
+	uint8_t tmp;
+
+	// Set the timebase
+	write_reg(PCF8523_TMR_B_FREQ_CTRL , timebase);
+
+	// Set the value
+	write_reg(PCF8523_TMR_B_REG , value);
+
+	// Clear any Timer B flags
+  tmp = read_reg(PCF8523_CONTROL_2);
+	
+	tmp &= ~_BV(PCF8523_CONTROL_2_CTBF_BIT);	// Clear the Timer B flag
+	tmp |= _BV(PCF8523_CONTROL_2_CTBIE_BIT);	// Enable Timer B interrupt
+
+	write_reg(PCF8523_CONTROL_2 , tmp);
+
+	// Set Timer A as Countdown and Enable
+    tmp = read_reg(PCF8523_TMR_CLKOUT_CTRL);
+
+	tmp |= _BV(PCF8523_TMR_CLKOUT_CTRL_TBM_BIT);	// /INT line is pulsed
+	tmp |= 0x01;									// Enable	
+
+	write_reg(PCF8523_TMR_CLKOUT_CTRL , tmp);
+
+
+}
+void PCF8523::ackTimer2(void)
+{
+	uint8_t tmp;
+
+	// Clear any Timer B flags
+  tmp = read_reg(PCF8523_CONTROL_2);
+	
+	tmp &= ~_BV(PCF8523_CONTROL_2_CTBF_BIT);	// Clear the Timer A flag
+
+	write_reg(PCF8523_CONTROL_2 , tmp);
+
+	return;
+}
+uint8_t PCF8523::getTimer2(void)
+{
+	return read_reg(PCF8523_TMR_B_REG);
+}
+
+
+
 ////////////////////////////////////////////////////////////////////////////////
 // RTC_DS1307 implementation
 

@@ -92,6 +92,11 @@ class TimeSpan;
 #define PCF8523_YEAR_1H_BIT          3
 #define PCF8523_YEAR_1H_LENGTH       4
 
+
+#define PCF8523_TMR_CLKOUT_CTRL_TAM_BIT		7
+#define PCF8523_TMR_CLKOUT_CTRL_TBM_BIT		6
+#define PCF8523_TMR_CLKOUT_CTRL_TBC_BIT		0
+
 //End PCF8523 defines
 
 #define DS1307_ADDRESS               	0x68
@@ -186,6 +191,13 @@ protected:
 
 enum Pcf8523SqwPinMode { PCF8523_OFF = 7, PCF8523_SquareWave1HZ = 6, PCF8523_SquareWave32HZ = 5, PCF8523_SquareWave1kHz = 4, PCF8523_SquareWave4kHz = 3, PCF8523_SquareWave8kHz = 2, PCF8523_SquareWave16kHz = 1, PCF8523_SquareWave32kHz = 0 };
 
+typedef enum {
+	eTB_4KHZ = 0,
+	eTB_64HZ,
+	eTB_SECOND,
+	eTB_MINUTE,
+	eTB_HOUR
+} eTIMER_TIMEBASE;
 
 class PCF8523{
 
@@ -201,18 +213,25 @@ class PCF8523{
 	void write_reg(uint8_t address, uint8_t* buf, uint8_t size);
 	void set_alarm(uint8_t day_alarm, uint8_t hour_alarm,uint8_t minute_alarm ) ;
 	void set_alarm(uint8_t hour_alarm,uint8_t minute_alarm );
+	void set_alarm(uint8_t minute_alarm );
 	void get_alarm(uint8_t* buf);
 	void reset();
 	uint8_t clear_rtc_interrupt_flags(); 
 	void stop_32768_clkout();
 	void start_counter_1(uint8_t value);
 
-	//
-	void set_alarm(uint8_t minute_alarm );
 	void enable_alarm(bool enable);
 	void ack_alarm(void);
 	Pcf8523SqwPinMode readSqwPinMode();
 	void writeSqwPinMode(Pcf8523SqwPinMode mode);
+
+	// Periodic Timers
+	void setTimer1(eTIMER_TIMEBASE timebase, uint8_t value);
+	void ackTimer1(void);
+	uint8_t getTimer1(void);
+	void setTimer2(eTIMER_TIMEBASE timebase,uint8_t value);
+	void ackTimer2(void);
+	uint8_t getTimer2(void);
 
 };
 
