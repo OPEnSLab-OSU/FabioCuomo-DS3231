@@ -1,25 +1,21 @@
 
 #include <OPEnS_RTC.h>
 
-#define EI_NOTEXTERNAL
-#include <EnableInterrupt.h>
-
 const int ALARM_DURATION = 10; 		// Number of seconds before alarm goes off
 
 // Instance of DS3231 RTC
 RTC_DS3231 RTC_DS; 
 
 
-#define ALARM_PIN 6
-
-void clear_alarms();
+#define ALARM_PIN 12
 
 
-volatile bool alarmFlag = false;
+volatile bool alarmFlag;
 void alarmISR() { 
 	detachInterrupt(digitalPinToInterrupt(ALARM_PIN)); 
-	clear_alarms();
+	RTC_DS.clearAlarm();
 	alarmFlag = true;
+	Serial.println("Alarm triggered");
 }
 
 
@@ -37,14 +33,7 @@ void setup()
 	delay(1000);
 	Serial.println("Initialized Serial");
 
-	// Setup interrupt and alarm
-	clear_alarms();
-	attachInterrupt( digitalPinToInterrupt(ALARM_PIN), alarmISR, LOW );
-
-	DateTime alarmTime = RTC_DS.now()+TimeSpan(ALARM_DURATION);
-	RTC_DS.setAlarm(ALM1_MATCH_HOURS, alarmTime.second(), alarmTime.minute(), alarmTime.hour(), 0);   //set your wake-up time here
-	RTC_DS.alarmInterrupt(1, true);
-	digitalWrite(LED_BUILTIN, LOW);
+	alarmFlag = true;
 
 	Serial.println("\n ** Setup Complete ** ");
 }
@@ -53,30 +42,20 @@ void loop()
 {
 	if (alarmFlag) {
 		digitalWrite(LED_BUILTIN, HIGH);
-		Serial.println("Alarm triggered, resetting alarm");
 		delay(1000);
 		
 		// Setup interrupt and alarm
-		clear_alarms();
+		// Mysterious issue: Must call this function twice
+		attachInterrupt( digitalPinToInterrupt(ALARM_PIN), alarmISR, LOW );
 		attachInterrupt( digitalPinToInterrupt(ALARM_PIN), alarmISR, LOW );
 
 		DateTime alarmTime = RTC_DS.now()+TimeSpan(ALARM_DURATION);
-		RTC_DS.setAlarm(ALM1_MATCH_HOURS, alarmTime.second(), alarmTime.minute(), alarmTime.hour(), 0);   //set your wake-up time here
-		RTC_DS.alarmInterrupt(1, true);
+		Serial.print("Alarm set to ");
+		Serial.println(alarmTime.text());
+		RTC_DS.setAlarm(alarmTime);
 		digitalWrite(LED_BUILTIN, LOW);
 
 		digitalWrite(LED_BUILTIN, LOW);
 		alarmFlag = false;
 	}
-}
-
-void clear_alarms() 
-{
-	RTC_DS.armAlarm(1, false);
-	RTC_DS.clearAlarm(1);
-	RTC_DS.alarmInterrupt(1, false);
-	RTC_DS.armAlarm(2, false);
-	RTC_DS.clearAlarm(2);
-	RTC_DS.alarmInterrupt(2, false);
-
 }

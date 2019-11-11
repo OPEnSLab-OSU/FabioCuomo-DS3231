@@ -17,7 +17,6 @@
 #endif
 
 #define WIRE Wire
-#define _BV(n) (1 << n)
 
 #if (ARDUINO >= 100)
  #include <Arduino.h> // capital A so it is error prone on case-sensitive filesystems
@@ -66,6 +65,34 @@ static uint16_t date2days(uint16_t y, uint8_t m, uint8_t d) {
 static long time2long(uint16_t days, uint8_t h, uint8_t m, uint8_t s) {
 		return ((days * 24L + h) * 60 + m) * 60 + s;
 }
+
+
+// Utilities for converting between BCD and binary
+static uint8_t bcd2bin (uint8_t val) { return val - 6 * (val >> 4); }
+static uint8_t bin2bcd (uint8_t val) { return val + 6 * (val / 10); }
+
+// Effeciently convert two-digit byte to char array.
+// Returns pointer to byte *AFTER* the most recent digit, to make repeated calls easy.
+// Please make sure you pass in a valid pointer.
+char * bin2char(char * src, uint8_t val){
+	val = bin2bcd(val);
+	*src++=(val>>4) + '0';
+	*src++=(val & 0x0F) + '0';
+	return src;
+}
+
+
+// Converts a 2-digit character array to an 8-bit unsigned int.
+// Beware: There is no zero data validation here.
+// If either digit is not a number, you will get an unexpected result.
+// It will carry on happily as if nothing is wrong.
+static uint8_t conv2d(const char* p) {
+		uint8_t v = 0;
+		if ('0' <= *p && *p <= '9')
+				v = *p - '0';
+		return 10 * v + *++p - '0';
+}
+
 
 ////////////////////////////////////////////////////////////////////////////////
 // DateTime implementation - ignores time zones and DST changes
@@ -117,13 +144,6 @@ DateTime::DateTime (const DateTime& copy):
 	mm(copy.mm),
 	ss(copy.ss)
 {}
-
-static uint8_t conv2d(const char* p) {
-		uint8_t v = 0;
-		if ('0' <= *p && *p <= '9')
-				v = *p - '0';
-		return 10 * v + *++p - '0';
-}
 
 // A convenient constructor for using "the compiler's time":
 //   DateTime now (__DATE__, __TIME__);
@@ -195,6 +215,25 @@ long DateTime::secondstime(void) const {
 	return t;
 }
 
+char * DateTime::text(void) {
+	// String concatenation
+	char * ptr = buf;
+	ptr = bin2char( ptr, 20);
+	ptr = bin2char( ptr, yOff);
+	*ptr++ ='.';
+	ptr = bin2char( ptr, m);
+	*ptr++ ='.';
+	ptr = bin2char( ptr, d);
+	*ptr++ =' ';
+	ptr = bin2char( ptr, hh);
+	*ptr++ =':';
+	ptr = bin2char( ptr, mm);
+	*ptr++ =':';
+	ptr = bin2char( ptr, ss);
+	*ptr++ = '\0';	// Terminate with NULL character
+	return buf;
+}
+
 DateTime DateTime::operator+(const TimeSpan& span) {
 	return DateTime(unixtime()+span.totalseconds());
 }
@@ -229,9 +268,6 @@ TimeSpan TimeSpan::operator+(const TimeSpan& right) {
 TimeSpan TimeSpan::operator-(const TimeSpan& right) {
 	return TimeSpan(_seconds-right._seconds);
 }
-
-static uint8_t bcd2bin (uint8_t val) { return val - 6 * (val >> 4); }
-static uint8_t bin2bcd (uint8_t val) { return val + 6 * (val / 10); }
 
 ////////////////////////////////////////////////////////////////////////////////
 // PCF8523 implementation
@@ -822,9 +858,8 @@ void RTC_DS3231::adjust(const DateTime& dt) {
 
 DateTime RTC_DS3231::now() {
 	Wire.beginTransmission(DS3231_ADDRESS);
-	Wire._I2C_WRITE((byte)0);	
+	Wire._I2C_WRITE((byte)0);
 	Wire.endTransmission();
-
 	Wire.requestFrom(DS3231_ADDRESS, 7);
 	uint8_t ss = bcd2bin(Wire._I2C_READ() & 0x7F);
 	uint8_t mm = bcd2bin(Wire._I2C_READ());
@@ -892,48 +927,20 @@ float RTC_DS3231::getTemp() {
 	}
 }
 
-/*----------------------------------------------------------------------*
- * Enable or disable an alarm "interrupt" which asserts the INT pin     *
- * on the RTC.                                                          *
- *----------------------------------------------------------------------*/
-void RTC_DS3231::alarmInterrupt(byte alarmNumber, bool interruptEnabled)
-{
-		uint8_t controlReg, mask;
-		
-		Wire.beginTransmission(DS3231_ADDRESS);
-		Wire.write(DS3231_CONTROL);
-		controlReg = Wire.endTransmission();
-		if (!controlReg) {
-			Wire.requestFrom((uint8_t)DS3231_ADDRESS, (uint8_t)1);
-			controlReg = Wire._I2C_READ();
-			Wire.endTransmission();
-		}
-
-		mask = _BV(A1IE) << (alarmNumber - 1);
-		if (interruptEnabled)
-				controlReg |= mask;
-		else
-				controlReg &= ~mask;
-
-		Wire.beginTransmission(DS3231_ADDRESS);
-		Wire.write(DS3231_CONTROL);
-		Wire.write(controlReg);
-		Wire.endTransmission();
-}
 
 /*----------------------------------------------------------------------*
- * Set an alarm time. Sets the alarm registers only.  To cause the      *
- * INT pin to be asserted on alarm match, use alarmInterrupt().         *
+ * Set an alarm time. Sets the alarm registers, arms the alarm, and     *
+ * clears any existing alarms that are currently going off.             *
+ * To actually respond to the alarm, you will need to configure a pin   *
+ * with as a pull-up and use Arduino's attachInterrupt() function.      *
  * This method can set either Alarm 1 or Alarm 2, depending on the      *
  * value of alarmType (use a value from the ALARM_TYPES_t enumeration). *
  * When setting Alarm 2, the seconds value must be supplied but is      *
  * ignored, recommend using zero. (Alarm 2 has no seconds register.)    *
  *----------------------------------------------------------------------*/
 void RTC_DS3231::setAlarm(Ds3231_ALARM_TYPES_t alarmType, byte seconds, byte minutes, byte hours, byte daydate){
-
 		uint8_t addr;
 		byte alarmNumber;
-		
 		seconds = bin2bcd(seconds);
 		minutes = bin2bcd(minutes);
 		hours = bin2bcd(hours);
@@ -943,37 +950,25 @@ void RTC_DS3231::setAlarm(Ds3231_ALARM_TYPES_t alarmType, byte seconds, byte min
 		if (alarmType & 0x04) hours |= _BV(A1M3);
 		if (alarmType & 0x10) hours |= _BV(DYDT);
 		if (alarmType & 0x08) daydate |= _BV(A1M4);
-		
+		uint8_t data[] = {seconds, minutes, hours, daydate};
 		if ( !(alarmType & 0x80) ) {    //alarm 1
 				alarmNumber = 1;
 				addr = ALM1_SECONDS;
 				Wire.beginTransmission(DS3231_ADDRESS);
-				Wire.write(addr++);
-				Wire.write(seconds);
-				Wire.endTransmission();
+				Wire.write(addr);
+				Wire.write(data,4);
 		}
 		else {
 				alarmNumber = 2;
 				addr = ALM2_MINUTES;      //alarm 2
+				Wire.beginTransmission(DS3231_ADDRESS);
+				Wire.write(addr);
+				Wire.write(data+1,3); // skip the seconds field
 		}
 
-		Wire.beginTransmission(DS3231_ADDRESS);
-		Wire.write(addr++);
-		Wire.write(minutes);
 		Wire.endTransmission();
-
-		Wire.beginTransmission(DS3231_ADDRESS);
-		Wire.write(addr++);
-		Wire.write(hours);
-		Wire.endTransmission();
-
-		Wire.beginTransmission(DS3231_ADDRESS);
-		Wire.write(addr++);
-		Wire.write(daydate);
-		Wire.endTransmission();
-
+		
 		armAlarm(alarmNumber, true);
-		clearAlarm(alarmNumber);
 }
 
 /*----------------------------------------------------------------------*
@@ -988,20 +983,22 @@ void RTC_DS3231::setAlarm(Ds3231_ALARM_TYPES_t alarmType, byte minutes, byte hou
 		setAlarm(alarmType, 0, minutes, hours, daydate);
 }
 
+void RTC_DS3231::setAlarm(DateTime t){
+	Ds3231_ALARM_TYPES_t match = ALM1_MATCH_DATE;
+	setAlarm(match, t.second(), t.minute(), t.hour(), t.day());
+}
+
 /*----------------------------------------------------------------------*
  * This method arms or disarms Alarm 1 or Alarm 2, depending on the     *
  * value of alarmNumber (1 or 2) and arm (true or false).               *
  *----------------------------------------------------------------------*/
 void RTC_DS3231::armAlarm(byte alarmNumber, bool armed) {
 		uint8_t value, mask;
-
 		Wire.beginTransmission(DS3231_ADDRESS);
 		Wire.write(DS3231_CONTROL);
 		Wire.endTransmission();
-
 		Wire.requestFrom((uint8_t)DS3231_ADDRESS, (uint8_t)1);
 		value = Wire._I2C_READ();
-		Wire.endTransmission();
 
 		mask = _BV(alarmNumber - 1);
 		if (armed) {
@@ -1010,10 +1007,13 @@ void RTC_DS3231::armAlarm(byte alarmNumber, bool armed) {
 		else {
 				value &= ~mask;
 		}
+		// Make sure device is configured for alarm interrupts
+		value = 0x1F & value | 0x04;
 
 		Wire.beginTransmission(DS3231_ADDRESS);
 		Wire.write(DS3231_CONTROL);
 		Wire.write(value);
+		Wire.write(0);	// Make sure the alarms are cleared
 		Wire.endTransmission();
 }
 
@@ -1027,18 +1027,20 @@ void RTC_DS3231::clearAlarm(byte alarmNumber) {
 		Wire.beginTransmission(DS3231_ADDRESS);
 		Wire.write(DS3231_STATUSREG);
 		Wire.endTransmission();
-
 		Wire.requestFrom((uint8_t)DS3231_ADDRESS, (uint8_t)1);
 		value = Wire._I2C_READ();
-		Wire.endTransmission();
 
-		mask = _BV(alarmNumber - 1);
+		mask = alarmNumber & 0x03;
 		value &= ~mask;
 
 		Wire.beginTransmission(DS3231_ADDRESS);
 		Wire.write(DS3231_STATUSREG);
 		Wire.write(value);
 		Wire.endTransmission();
+}
+
+void RTC_DS3231::clearAlarm( void ){
+	clearAlarm( 3 ); // Clear both alarms
 }
 
 /*----------------------------------------------------------------------*
@@ -1051,7 +1053,6 @@ bool RTC_DS3231::isArmed(byte alarmNumber) {
 		Wire.beginTransmission(DS3231_ADDRESS);
 		Wire.write(DS3231_CONTROL);
 		Wire.endTransmission();
-
 		Wire.requestFrom((uint8_t)DS3231_ADDRESS, (uint8_t)1);
 		value = Wire._I2C_READ();
 		Wire.endTransmission();
@@ -1063,36 +1064,6 @@ bool RTC_DS3231::isArmed(byte alarmNumber) {
 			value &= 0b00000010;
 			value >>= 1;
 		}
-		return value;
-}
-
-/*----------------------------------------------------------------------*
- * This method writes a single byte in RTC memory                       *
- * Valid address range is 0x00 - 0x12, no checking.                     *
- *----------------------------------------------------------------------*/
-void RTC_DS3231::write(byte addr, byte value) {
-
-		Wire.beginTransmission(DS3231_ADDRESS);
-		Wire.write(addr);
-		Wire.write(value);
-		Wire.endTransmission();
-}
-
-/*----------------------------------------------------------------------*
- * This method reads a single byte from RTC memory                      *
- * Valid address range is 0x00 - 0x12, no checking.                     *
- *----------------------------------------------------------------------*/
-byte RTC_DS3231::read(byte addr) {
-		uint8_t value;
-
-		Wire.beginTransmission(DS3231_ADDRESS);
-		Wire.write(addr);
-		Wire.endTransmission();
-
-		Wire.requestFrom((uint8_t)DS3231_ADDRESS, (uint8_t)1);
-		value = Wire._I2C_READ();
-		Wire.endTransmission();
-
 		return value;
 }
 

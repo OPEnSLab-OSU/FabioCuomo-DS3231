@@ -11,9 +11,6 @@ class TimeSpan;
 // with M0 (was not in original RTClibExtended.h):
 #define _BV(bit) (1 << (bit))
 
-// #define EI_NOTEXTERNAL
-// #include <EnableInterrupt.h>
-
 
 //Begin PCF8523 definitions
 #define PCF8523_ADDRESS				0x68
@@ -160,6 +157,8 @@ public:
 	long secondstime() const;   
 	// 32-bit times as seconds since 1/1/1970
 	uint32_t unixtime(void) const;
+	// String representation of time
+	char * text();
 
 	DateTime operator+(const TimeSpan& span);
 	DateTime operator-(const TimeSpan& span);
@@ -167,6 +166,7 @@ public:
 
 protected:
 	uint8_t yOff, m, d, hh, mm, ss;
+	char buf[24];
 };
 
 // Timespan which can represent changes in time with seconds accuracy.
@@ -283,12 +283,11 @@ public:
 	void forceConversion(void);
 	void setAlarm(Ds3231_ALARM_TYPES_t alarmType, byte seconds, byte minutes, byte hours, byte daydate);
 	void setAlarm(Ds3231_ALARM_TYPES_t alarmType, byte minutes, byte hours, byte daydate);
+	void setAlarm(DateTime t);
 	void armAlarm(byte alarmNumber, bool armed);
-	void alarmInterrupt(byte alarmNumber, bool alarmEnabled);
 	bool isArmed(byte alarmNumber);
 	void clearAlarm(byte alarmNumber);
-	void write(byte addr, byte value);
-	byte read(byte addr);
+	void clearAlarm( void );
 };
 
 // RTC based on the PCF8523 chip connected via I2C and the Wire library
