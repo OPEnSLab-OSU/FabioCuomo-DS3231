@@ -26,7 +26,9 @@ void setup()
 	digitalWrite(LED_BUILTIN, HIGH);
 
 	RTC_DS.begin();
-	RTC_DS.adjust(DateTime(__DATE__, __TIME__)); 
+	DateTime t = DateTime(__DATE__, __TIME__); 
+  t = t + TimeSpan(5);   //account for compilation time
+  RTC_DS.adjust(t);
 
 	Serial.begin(115200);
 	while (!Serial); // Won't start anything until serial is open, comment this line out if powering from battery

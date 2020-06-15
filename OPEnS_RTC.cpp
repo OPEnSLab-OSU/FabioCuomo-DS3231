@@ -68,8 +68,8 @@ static long time2long(uint16_t days, uint8_t h, uint8_t m, uint8_t s) {
 
 
 // Utilities for converting between BCD and binary
-static uint8_t bcd2bin (uint8_t val) { return val - 6 * (val >> 4); }
-static uint8_t bin2bcd (uint8_t val) { return val + 6 * (val / 10); }
+uint8_t bcd2bin (uint8_t val) { return val - 6 * (val >> 4); }
+uint8_t bin2bcd (uint8_t val) { return val + 6 * (val / 10); }
 
 // Effeciently convert two-digit byte to char array.
 // Returns pointer to byte *AFTER* the most recent digit, to make repeated calls easy.
@@ -1065,6 +1065,50 @@ bool RTC_DS3231::isArmed(byte alarmNumber) {
 			value >>= 1;
 		}
 		return value;
+}
+
+/*----------------------------------------------------------------------*
+ * This method can check either Alarm 1 or Alarm 2, depending on the    *
+ * value of alarmNumber (1 or 2).                                       *
+ *----------------------------------------------------------------------*/
+DateTime RTC_DS3231::getAlarm(byte alarmNumber) {
+		uint8_t seconds, minutes, hours, daydate, mask;
+		Wire.beginTransmission(DS3231_ADDRESS);
+		if( alarmNumber == 1 ){
+			Wire.write(0x07);
+			Wire.endTransmission();
+			Wire.requestFrom((uint8_t)DS3231_ADDRESS, (uint8_t)4);
+			seconds = Wire._I2C_READ();
+			minutes = Wire._I2C_READ();
+			hours = Wire._I2C_READ();
+			daydate = Wire._I2C_READ();
+			Wire.endTransmission();
+		} else {
+			Wire.write(0x0B);
+			Wire.endTransmission();
+			Wire.requestFrom((uint8_t)DS3231_ADDRESS, (uint8_t)3);
+			seconds = 0;
+			minutes = Wire._I2C_READ();
+			hours = Wire._I2C_READ();
+			daydate = Wire._I2C_READ();
+			Wire.endTransmission();
+		}
+		/* Here's the alarm mask that determines whether
+		the alarm ignores seconds, minutes, hours, weekday, and date.*/
+		mask = (seconds>>7) | (0x02 & (minutes>>6)) | (0x03 & (hours>>5)) | (0xC0 & daydate);
+		
+		// Convert time to binary
+		seconds = bcd2bin(0x7F & seconds);
+		minutes = bcd2bin(0x7F & minutes);
+		hours   = bcd2bin(0x7F & hours); // Assume 24-hour format
+		daydate = bcd2bin(0x3F & daydate); // Assume date, not weekday
+				
+		DateTime t = now();
+		// Put into a timestamp
+		DateTime a = DateTime( t.year(), t.month(), daydate, hours, minutes, seconds);
+		
+		//TODO: adjust alarm according to mask so it's always future
+		return( a );
 }
 
 /*----------------------------------------------------------------------*

@@ -288,6 +288,7 @@ public:
 	bool isArmed(byte alarmNumber);
 	void clearAlarm(byte alarmNumber);
 	void clearAlarm( void );
+	DateTime getAlarm(byte alarmNumber);
 };
 
 // RTC based on the PCF8523 chip connected via I2C and the Wire library
