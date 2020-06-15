@@ -18,15 +18,13 @@ const int DELAY_COUNT = 5; 		// Number of seconds to wait before running loop()
 #define DEBUG_Println2(X,Y)     DEBUG_Print(X); DEBUG_Println(Y)
 
 // Instance of DS3231 RTC
-RTC_DS3231 RTC_DS; 
+RTC_DS3231 RTC_DS;
 
 
 // ======= FUNCTION PROTOTYPES ======
 void sleep();
 void countdown();
 void InitializeRTC();
-void setRTCAlarm();
-void clearRTCAlarm();
 void print_DateTime(DateTime time);
 
 
@@ -34,6 +32,7 @@ void print_DateTime(DateTime time);
 void wakeUp_RTC()
 {
 	detachInterrupt(digitalPinToInterrupt(WAKE_PIN));
+	RTC_DS.clearAlarm();
 }
 
 
@@ -97,6 +96,7 @@ void pre_sleep()
 	USBDevice.detach();
 
 	// Don't know why this has to happen twice but it does
+	// I think it clears the interrupt flag
 	attachInterrupt(digitalPinToInterrupt(WAKE_PIN), wakeUp_RTC, LOW);
 	attachInterrupt(digitalPinToInterrupt(WAKE_PIN), wakeUp_RTC, LOW);
 
@@ -108,33 +108,15 @@ void pre_sleep()
 // Clear alarms, reconnect Serial, turn on LED
 void post_sleep()
 {
-	clearRTCAlarm(); //prevent double trigger of alarm interrupt
 	USBDevice.attach();
 	Serial.begin(115200);
 	digitalWrite(LED_BUILTIN, HIGH);
 #if DEBUG == 1
-	// Give user 5s to reopen Serial monitor!
-	// Note that the serial may still take a few seconds 
-	// to fully setup after the LED turns on
-	delay(5000); 
+	while(!Serial);	// Wait for the user to open the serial port
 #endif
 	DEBUG_Println("WAKE");
 
 	print_DateTime(RTC_DS.now());
-}
-
-
-/* RTC helper function */
-/* When exiting the sleep mode we clear the alarm */
-void clearRTCAlarm()
-{
-	// Clear any pending alarms on the RTC
-	RTC_DS.armAlarm(1, false);
-	RTC_DS.clearAlarm(1);
-	RTC_DS.alarmInterrupt(1, false);
-	RTC_DS.armAlarm(2, false);
-	RTC_DS.clearAlarm(2);
-	RTC_DS.alarmInterrupt(2, false);
 }
 
 
@@ -146,18 +128,14 @@ void InitializeRTC()
 		DEBUG_Println("Couldn't find RTC");
 		while (1);
 	}
-	// This may end up causing a problem in practice - what if RTC looses power in field? Shouldn't happen with coin cell batt backup
+	// This may end up causing a problem in practice - what if RTC loses power in field? Shouldn't happen with coin cell batt backup
 	if (RTC_DS.lostPower()) {
 		DEBUG_Println("RTC lost power, lets set the time!");
 		// Set the RTC to the date & time this sketch was compiled
 		RTC_DS.adjust(DateTime(F(__DATE__), F(__TIME__)));
 	}
 	// Clear any pending alarms
-	clearRTCAlarm();
-
-	// Query Time and print
-	DateTime now = RTC_DS.now();
-	RTC_DS.writeSqwPinMode(DS3231_OFF);
+	RTC_DS.clearAlarm();
 }
 
 
@@ -171,8 +149,7 @@ void setRTCAlarm_Relative(int hours, int minutes, int seconds)
 	DEBUG_Print("\nReset Alarm for: ");
 	print_DateTime(future);
 
-	RTC_DS.setAlarm(ALM1_MATCH_HOURS, future.second(), future.minute(), future.hour(), 0);
-	RTC_DS.alarmInterrupt(1, true);
+	RTC_DS.setAlarm(future);
 }
 
 
@@ -192,10 +169,5 @@ void countdown()
 // Print an RTC time
 void print_DateTime(DateTime time)
 {
-	DEBUG_Print2(time.year(), '/');
-	DEBUG_Print2(time.month(), '/');
-	DEBUG_Print2(time.day(), ' ');
-	DEBUG_Print2(time.hour(), ':');
-	DEBUG_Print2(time.minute(), ':');
-	DEBUG_Println(time.second());
+	DEBUG_Println(time.text());
 }
