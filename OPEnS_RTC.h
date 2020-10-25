@@ -199,7 +199,7 @@ typedef enum {
 	eTB_HOUR
 } eTIMER_TIMEBASE;
 
-class PCF8523{
+class RTC_PCF8523{
 
 	public:
 	static uint8_t begin(void);

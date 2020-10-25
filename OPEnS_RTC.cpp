@@ -236,7 +236,7 @@ static uint8_t bin2bcd (uint8_t val) { return val + 6 * (val / 10); }
 ////////////////////////////////////////////////////////////////////////////////
 // PCF8523 implementation
 
-uint8_t PCF8523::begin(void) {
+uint8_t RTC_PCF8523::begin(void) {
 	// return 1;
 	Wire.begin();
 	return true;
@@ -244,7 +244,7 @@ uint8_t PCF8523::begin(void) {
 
 // Example: bool a = PCF8523.isrunning();
 // Returns 1 if RTC is running and 0 it's not 
-uint8_t PCF8523::isrunning(void) {
+uint8_t RTC_PCF8523::isrunning(void) {
 	WIRE.beginTransmission(PCF8523_ADDRESS);
 	WIRE._I2C_WRITE(0);
 	WIRE.endTransmission();
@@ -256,7 +256,7 @@ uint8_t PCF8523::isrunning(void) {
 }
 
 
-boolean PCF8523::initialized(void) {
+boolean RTC_PCF8523::initialized(void) {
 	Wire.beginTransmission(PCF8523_ADDRESS);
 	Wire._I2C_WRITE((byte)PCF8523_CONTROL_3);
 	Wire.endTransmission();
@@ -269,7 +269,7 @@ boolean PCF8523::initialized(void) {
 
 // Example: PCF8523.adjust (DateTime(2014, 8, 14, 1, 49, 0))
 // Sets RTC time to 2014/14/8 1:49 a.m.
-void PCF8523::adjust(const DateTime& dt) {
+void RTC_PCF8523::adjust(const DateTime& dt) {
 	WIRE.beginTransmission(PCF8523_ADDRESS);
 	WIRE._I2C_WRITE(0x03);
 	WIRE._I2C_WRITE(bin2bcd(dt.second()));
@@ -291,7 +291,7 @@ void PCF8523::adjust(const DateTime& dt) {
 // hour = now.hour()
 // minute = now.minute()
 // second = now.second()
-DateTime PCF8523::now() {
+DateTime RTC_PCF8523::now() {
 	WIRE.beginTransmission(PCF8523_ADDRESS);
 	WIRE._I2C_WRITE(3);   
 	WIRE.endTransmission();
@@ -312,7 +312,7 @@ DateTime PCF8523::now() {
 // Returns:   buf[0] = &address
 //            buf[1] = &address + 1
 //      ..... buf[size-1] = &address + size
-void PCF8523::read_reg(uint8_t* buf, uint8_t size, uint8_t address) {
+void RTC_PCF8523::read_reg(uint8_t* buf, uint8_t size, uint8_t address) {
 	int addrByte = address;
 	WIRE.beginTransmission(PCF8523_ADDRESS);
 	WIRE._I2C_WRITE(addrByte);
@@ -328,7 +328,7 @@ void PCF8523::read_reg(uint8_t* buf, uint8_t size, uint8_t address) {
 // Write:     buf[0] => &address
 //            buf[1] => &address + 1
 //      ..... buf[size-1] => &address + size
-void PCF8523::write_reg(uint8_t address, uint8_t* buf, uint8_t size) {
+void RTC_PCF8523::write_reg(uint8_t address, uint8_t* buf, uint8_t size) {
 	int addrByte = address;
 	WIRE.beginTransmission(PCF8523_ADDRESS);
 	WIRE._I2C_WRITE(addrByte);
@@ -341,7 +341,7 @@ void PCF8523::write_reg(uint8_t address, uint8_t* buf, uint8_t size) {
 // Example: val = PCF8523.read_reg(0x08);
 // Reads the value in register addressed at 0x08
 // and returns data
-uint8_t PCF8523::read_reg(uint8_t address) {
+uint8_t RTC_PCF8523::read_reg(uint8_t address) {
 	uint8_t data;
 	read_reg(&data, 1, address);
 	return data;
@@ -349,13 +349,13 @@ uint8_t PCF8523::read_reg(uint8_t address) {
 
 // Example: PCF8523.write_reg(0x08, 0x25);
 // Writes value 0x25 in register addressed at 0x08
-void PCF8523::write_reg(uint8_t address, uint8_t data) {
+void RTC_PCF8523::write_reg(uint8_t address, uint8_t data) {
 	write_reg(address, &data, 1);
 }
 
 // Example: PCF8523.set_alarm(10,5,45)
 // Set alarm at day = 5, 5:45 a.m.
-void PCF8523::set_alarm(uint8_t day_alarm, uint8_t hour_alarm,uint8_t minute_alarm ) {
+void RTC_PCF8523::set_alarm(uint8_t day_alarm, uint8_t hour_alarm,uint8_t minute_alarm ) {
 	WIRE.beginTransmission(PCF8523_ADDRESS);
 	WIRE._I2C_WRITE(0x0A);
 	// Enable Minute
@@ -368,7 +368,7 @@ void PCF8523::set_alarm(uint8_t day_alarm, uint8_t hour_alarm,uint8_t minute_ala
 	WIRE.endTransmission();
 }
 
-void PCF8523::set_alarm(uint8_t hour_alarm,uint8_t minute_alarm ) {
+void RTC_PCF8523::set_alarm(uint8_t hour_alarm,uint8_t minute_alarm ) {
 	WIRE.beginTransmission(PCF8523_ADDRESS);
 	WIRE._I2C_WRITE(0x0A);
 	// Enable Minute
@@ -381,7 +381,7 @@ void PCF8523::set_alarm(uint8_t hour_alarm,uint8_t minute_alarm ) {
 }
 
 // = = = = = = = =
-void PCF8523::set_alarm(uint8_t minute_alarm ) {
+void RTC_PCF8523::set_alarm(uint8_t minute_alarm ) {
 	WIRE.beginTransmission(PCF8523_ADDRESS);
 	WIRE._I2C_WRITE(0x0A);
 	// Enable Minute
@@ -392,7 +392,7 @@ void PCF8523::set_alarm(uint8_t minute_alarm ) {
 	WIRE.endTransmission();
 }
 
-void PCF8523::enable_alarm(bool enable)
+void RTC_PCF8523::enable_alarm(bool enable)
 {
 	uint8_t tmp;
 
@@ -414,7 +414,7 @@ void PCF8523::enable_alarm(bool enable)
 
 }
 
-void PCF8523::ack_alarm(void)
+void RTC_PCF8523::ack_alarm(void)
 {
 	uint8_t tmp;
 	tmp = read_reg(PCF8523_CONTROL_2);
@@ -426,7 +426,7 @@ void PCF8523::ack_alarm(void)
 }
 
 
-Pcf8523SqwPinMode PCF8523::readSqwPinMode() {
+Pcf8523SqwPinMode RTC_PCF8523::readSqwPinMode() {
 	int mode;
 
 	Wire.beginTransmission(PCF8523_ADDRESS);
@@ -441,7 +441,7 @@ Pcf8523SqwPinMode PCF8523::readSqwPinMode() {
 	return static_cast<Pcf8523SqwPinMode>(mode);
 }
 
-void PCF8523::writeSqwPinMode(Pcf8523SqwPinMode mode) {
+void RTC_PCF8523::writeSqwPinMode(Pcf8523SqwPinMode mode) {
 	Wire.beginTransmission(PCF8523_ADDRESS);
 	Wire._I2C_WRITE(PCF8523_CLKOUTCONTROL);
 	Wire._I2C_WRITE(mode << 3);
@@ -452,7 +452,7 @@ void PCF8523::writeSqwPinMode(Pcf8523SqwPinMode mode) {
 
 // Example: PCF8523.get_alarm(a);
 // Returns a[0] = alarm minutes, a[1] = alarm hour, a[2] = alarm day
-void PCF8523::get_alarm(uint8_t* buf) {
+void RTC_PCF8523::get_alarm(uint8_t* buf) {
 	WIRE.beginTransmission(PCF8523_ADDRESS);
 	WIRE._I2C_WRITE(0x0A);
 	WIRE.endTransmission();
@@ -463,7 +463,7 @@ void PCF8523::get_alarm(uint8_t* buf) {
 	
 }
 
-void PCF8523::start_counter_1(uint8_t value){
+void RTC_PCF8523::start_counter_1(uint8_t value){
 		// Set timer freq at 1Hz
 		write_reg(PCF8523_TMR_A_FREQ_CTRL , 2);
 		// Load Timer value
@@ -484,24 +484,24 @@ void PCF8523::start_counter_1(uint8_t value){
 
 // Example: PCF8523.reset();
 // Reset the PCF8523
-void PCF8523::reset(){
+void RTC_PCF8523::reset(){
 	write_reg(PCF8523_CONTROL_1, 0x58);
 }
 
-uint8_t PCF8523::clear_rtc_interrupt_flags() {
+uint8_t RTC_PCF8523::clear_rtc_interrupt_flags() {
 	uint8_t rc2 = read_reg(PCF8523_CONTROL_2) & (PCF8523_CONTROL_2_SF_BIT | PCF8523_CONTROL_2_AF_BIT);
 	write_reg(PCF8523_CONTROL_2, 0);  // Just zero the whole thing
 	return rc2 != 0;
 }
 
 // Stop the default 32.768KHz CLKOUT signal on INT1.
-void PCF8523::stop_32768_clkout() {
+void RTC_PCF8523::stop_32768_clkout() {
 	uint8_t tmp = (read_reg (PCF8523_TMR_CLKOUT_CTRL))|RTC_CLKOUT_DISABLED;
 
 	write_reg(PCF8523_TMR_CLKOUT_CTRL , tmp);
 }
 
-void PCF8523::setTimer1(eTIMER_TIMEBASE timebase, uint8_t value)
+void RTC_PCF8523::setTimer1(eTIMER_TIMEBASE timebase, uint8_t value)
 {
 	uint8_t tmp;
 
@@ -528,7 +528,7 @@ void PCF8523::setTimer1(eTIMER_TIMEBASE timebase, uint8_t value)
 	write_reg(PCF8523_TMR_CLKOUT_CTRL , tmp);
 
 }
-void PCF8523::ackTimer1(void)
+void RTC_PCF8523::ackTimer1(void)
 {
 	uint8_t tmp;
 
@@ -541,11 +541,11 @@ void PCF8523::ackTimer1(void)
 
 	return;
 }
-uint8_t PCF8523::getTimer1(void)
+uint8_t RTC_PCF8523::getTimer1(void)
 {
 	return read_reg(PCF8523_TMR_A_REG);
 }
-void PCF8523::setTimer2(eTIMER_TIMEBASE timebase,uint8_t value)
+void RTC_PCF8523::setTimer2(eTIMER_TIMEBASE timebase,uint8_t value)
 {
 	uint8_t tmp;
 
@@ -573,7 +573,7 @@ void PCF8523::setTimer2(eTIMER_TIMEBASE timebase,uint8_t value)
 
 
 }
-void PCF8523::ackTimer2(void)
+void RTC_PCF8523::ackTimer2(void)
 {
 	uint8_t tmp;
 
@@ -586,7 +586,7 @@ void PCF8523::ackTimer2(void)
 
 	return;
 }
-uint8_t PCF8523::getTimer2(void)
+uint8_t RTC_PCF8523::getTimer2(void)
 {
 	return read_reg(PCF8523_TMR_B_REG);
 }
@@ -714,12 +714,12 @@ DateTime RTC_Millis::now() {
 ////////////////////////////////////////////////////////////////////////////////
 // RTC_PCF8563 implementation
 
-// boolean RTC_PCF8523::begin(void) {
+// boolean RTC_RTC_PCF8523::begin(void) {
 // 	Wire.begin();
 // 	return true;
 // }
 
-// boolean RTC_PCF8523::initialized(void) {
+// boolean RTC_RTC_PCF8523::initialized(void) {
 // 	Wire.beginTransmission(PCF8523_ADDRESS);
 // 	Wire._I2C_WRITE((byte)PCF8523_CONTROL_3);
 // 	Wire.endTransmission();
@@ -729,7 +729,7 @@ DateTime RTC_Millis::now() {
 // 	return ((ss & 0xE0) != 0xE0);
 // }
 
-// void RTC_PCF8523::adjust(const DateTime& dt) {
+// void RTC_RTC_PCF8523::adjust(const DateTime& dt) {
 // 	Wire.beginTransmission(PCF8523_ADDRESS);
 // 	Wire._I2C_WRITE((byte)3); // start at location 3
 // 	Wire._I2C_WRITE(bin2bcd(dt.second()));
@@ -748,7 +748,7 @@ DateTime RTC_Millis::now() {
 // 	Wire.endTransmission();
 // }
 
-// DateTime RTC_PCF8523::now() {
+// DateTime RTC_RTC_PCF8523::now() {
 // 	Wire.beginTransmission(PCF8523_ADDRESS);
 // 	Wire._I2C_WRITE((byte)3);	
 // 	Wire.endTransmission();
@@ -765,7 +765,7 @@ DateTime RTC_Millis::now() {
 // 	return DateTime (y, m, d, hh, mm, ss);
 // }
 
-// Pcf8523SqwPinMode RTC_PCF8523::readSqwPinMode() {
+// Pcf8523SqwPinMode RTC_RTC_PCF8523::readSqwPinMode() {
 // 	int mode;
 
 // 	Wire.beginTransmission(PCF8523_ADDRESS);
@@ -780,7 +780,7 @@ DateTime RTC_Millis::now() {
 // 	return static_cast<Pcf8523SqwPinMode>(mode);
 // }
 
-// void RTC_PCF8523::writeSqwPinMode(Pcf8523SqwPinMode mode) {
+// void RTC_RTC_PCF8523::writeSqwPinMode(Pcf8523SqwPinMode mode) {
 // 	Wire.beginTransmission(PCF8523_ADDRESS);
 // 	Wire._I2C_WRITE(PCF8523_CLKOUTCONTROL);
 // 	Wire._I2C_WRITE(mode << 3);
